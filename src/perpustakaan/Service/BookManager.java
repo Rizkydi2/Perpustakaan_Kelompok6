@@ -2,24 +2,20 @@ package perpustakaan.Service;
 
 import perpustakaan.Model.Book;
 import java.util.LinkedList;
-import java.util.UUID;
 
 /**
  * Kelas BookManager - mengelola koleksi buku dalam sistem perpustakaan.
  *
  * Kelas ini mengimplementasikan operasi CRUD (Create, Read, Update, Delete)
- * untuk mengelola buku menggunakan struktur data LinkedList.
+ * untuk buku dalam koleksi perpustakaan.
  *
  * @author Developer Sistem Perpustakaan
- * @version 1.0
  */
 public class BookManager {
-    // Menggunakan LinkedList sebagai struktur data untuk menyimpan buku
     private LinkedList<Book> books;
 
     /**
      * Konstruktor untuk membuat objek BookManager baru.
-     * Inisialisasi LinkedList kosong untuk menyimpan buku.
      */
     public BookManager() {
         this.books = new LinkedList<>();
@@ -28,22 +24,19 @@ public class BookManager {
     /**
      * Menambahkan buku baru ke dalam koleksi.
      *
-     * @param title Judul buku
-     * @param author Nama penulis
-     * @param category Kategori buku
-     * @return Objek buku yang baru ditambahkan
+     * @param book Buku yang akan ditambahkan
      */
-    public Book addBook(String title, String author, String category) {
-        // Membuat ID unik untuk buku baru
-        String id = generateUniqueId();
+    public void addBook(Book book) {
+        books.add(book);
+    }
 
-        // Membuat objek buku baru
-        Book newBook = new Book(id, title, author, category);
-
-        // Menambahkan buku ke dalam LinkedList
-        books.add(newBook);
-
-        return newBook;
+    /**
+     * Mendapatkan semua buku dalam koleksi.
+     *
+     * @return LinkedList berisi semua buku
+     */
+    public LinkedList<Book> getAllBooks() {
+        return books;
     }
 
     /**
@@ -53,91 +46,27 @@ public class BookManager {
      * @return Objek buku jika ditemukan, null jika tidak ditemukan
      */
     public Book findBookById(String id) {
-        // Mencari buku dalam LinkedList berdasarkan ID
         for (Book book : books) {
             if (book.getId().equals(id)) {
                 return book;
             }
         }
-
-        // Mengembalikan null jika buku tidak ditemukan
         return null;
     }
 
     /**
-     * Menampilkan semua buku dalam koleksi.
-     *
-     * @return LinkedList berisi semua buku
-     */
-    public LinkedList<Book> getAllBooks() {
-        return books;
-    }
-
-    /**
-     * Memperbarui informasi buku yang sudah ada.
-     *
-     * @param id ID buku yang akan diperbarui
-     * @param title Judul buku baru (null jika tidak diubah)
-     * @param author Penulis baru (null jika tidak diubah)
-     * @param category Kategori baru (null jika tidak diubah)
-     * @return true jika berhasil diperbarui, false jika buku tidak ditemukan
-     */
-    public boolean updateBook(String id, String title, String author, String category) {
-        // Mencari buku yang akan diperbarui
-        Book bookToUpdate = findBookById(id);
-
-        // Jika buku tidak ditemukan, kembalikan false
-        if (bookToUpdate == null) {
-            return false;
-        }
-
-        // Perbarui atribut yang diberikan
-        if (title != null) {
-            bookToUpdate.setTitle(title);
-        }
-
-        if (author != null) {
-            bookToUpdate.setAuthor(author);
-        }
-
-        if (category != null) {
-            bookToUpdate.setCategory(category);
-        }
-
-        return true;
-    }
-
-    /**
-     * Menghapus buku dari koleksi.
-     *
-     * @param id ID buku yang akan dihapus
-     * @return true jika berhasil dihapus, false jika buku tidak ditemukan
-     */
-    public boolean deleteBook(String id) {
-        // Mencari buku yang akan dihapus
-        Book bookToRemove = findBookById(id);
-
-        // Jika buku tidak ditemukan, kembalikan false
-        if (bookToRemove == null) {
-            return false;
-        }
-
-        // Hapus buku dari LinkedList
-        return books.remove(bookToRemove);
-    }
-
-    /**
      * Mencari buku berdasarkan judul.
+     * Metode ini akan mencocokkan sebagian judul (case-insensitive).
      *
      * @param title Judul buku yang dicari
-     * @return LinkedList berisi buku dengan judul yang sesuai
+     * @return LinkedList berisi buku-buku yang judulnya cocok
      */
     public LinkedList<Book> findBooksByTitle(String title) {
         LinkedList<Book> result = new LinkedList<>();
+        String titleLower = title.toLowerCase();
 
-        // Mencari buku dengan judul yang sesuai
         for (Book book : books) {
-            if (book.getTitle().toLowerCase().contains(title.toLowerCase())) {
+            if (book.getTitle().toLowerCase().contains(titleLower)) {
                 result.add(book);
             }
         }
@@ -147,16 +76,17 @@ public class BookManager {
 
     /**
      * Mencari buku berdasarkan kategori.
+     * Metode ini akan mencocokkan kategori secara tepat (case-insensitive).
      *
      * @param category Kategori buku yang dicari
-     * @return LinkedList berisi buku dengan kategori yang sesuai
+     * @return LinkedList berisi buku-buku yang kategorinya cocok
      */
     public LinkedList<Book> findBooksByCategory(String category) {
         LinkedList<Book> result = new LinkedList<>();
+        String categoryLower = category.toLowerCase();
 
-        // Mencari buku dengan kategori yang sesuai
         for (Book book : books) {
-            if (book.getCategory().toLowerCase().equals(category.toLowerCase())) {
+            if (book.getCategory().toLowerCase().contains(categoryLower)) {
                 result.add(book);
             }
         }
@@ -165,12 +95,36 @@ public class BookManager {
     }
 
     /**
-     * Membuat ID unik untuk buku baru.
+     * Memperbarui informasi buku dalam koleksi.
      *
-     * @return ID unik dalam format String
+     * @param updatedBook Buku yang sudah diperbarui informasinya
+     * @return true jika berhasil diperbarui, false jika buku tidak ditemukan
      */
-    private String generateUniqueId() {
-        // Menggunakan UUID untuk menghasilkan ID unik
-        return "BK-" + UUID.randomUUID().toString().substring(0, 8);
+    public boolean updateBook(Book updatedBook) {
+        for (int i = 0; i < books.size(); i++) {
+            Book book = books.get(i);
+            if (book.getId().equals(updatedBook.getId())) {
+                books.set(i, updatedBook);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Menghapus buku dari koleksi berdasarkan ID.
+     *
+     * @param id ID buku yang akan dihapus
+     * @return true jika berhasil dihapus, false jika buku tidak ditemukan
+     */
+    public boolean deleteBook(String id) {
+        for (int i = 0; i < books.size(); i++) {
+            Book book = books.get(i);
+            if (book.getId().equals(id)) {
+                books.remove(i);
+                return true;
+            }
+        }
+        return false;
     }
 }

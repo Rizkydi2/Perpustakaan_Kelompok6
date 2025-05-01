@@ -1,5 +1,7 @@
 package perpustakaan.Model;
 
+import java.util.UUID;
+
 /**
  * Kelas Book - mewakili sebuah buku dalam sistem perpustakaan.
  *
@@ -7,7 +9,6 @@ package perpustakaan.Model;
  * penulis, kategori, dan status ketersediaan buku.
  *
  * @author Developer Sistem Perpustakaan
- * @version 1.0
  */
 public class Book {
     private String id;
@@ -17,26 +18,36 @@ public class Book {
     private boolean isAvailable;
 
     /**
-     * Konstruktor default untuk membuat objek buku baru.
+     * Konstruktor untuk membuat buku baru dengan ID yang digenerate secara otomatis.
+     *
+     * @param title Judul buku
+     * @param author Penulis buku
+     * @param category Kategori buku
      */
-    public Book() {
-        this.isAvailable = true;
+    public Book(String title, String author, String category) {
+        this.id = UUID.randomUUID().toString();
+        this.title = title;
+        this.author = author;
+        this.category = category;
+        this.isAvailable = true; // Buku baru selalu tersedia
     }
 
     /**
-     * Konstruktor lengkap untuk membuat objek buku dengan semua atribut.
+     * Konstruktor untuk membuat buku dengan ID yang sudah ditentukan.
+     * Biasanya digunakan saat memuat data dari penyimpanan.
      *
-     * @param id ID unik untuk buku
+     * @param id ID buku
      * @param title Judul buku
-     * @param author Nama penulis buku
-     * @param category Kategori atau genre buku
+     * @param author Penulis buku
+     * @param category Kategori buku
+     * @param isAvailable Status ketersediaan buku
      */
-    public Book(String id, String title, String author, String category) {
+    public Book(String id, String title, String author, String category, boolean isAvailable) {
         this.id = id;
         this.title = title;
         this.author = author;
         this.category = category;
-        this.isAvailable = true;
+        this.isAvailable = isAvailable;
     }
 
     /**
@@ -46,15 +57,6 @@ public class Book {
      */
     public String getId() {
         return id;
-    }
-
-    /**
-     * Mengatur ID buku.
-     *
-     * @param id ID buku yang baru
-     */
-    public void setId(String id) {
-        this.id = id;
     }
 
     /**
@@ -76,18 +78,18 @@ public class Book {
     }
 
     /**
-     * Mendapatkan nama penulis buku.
+     * Mendapatkan penulis buku.
      *
-     * @return Nama penulis
+     * @return Penulis buku
      */
     public String getAuthor() {
         return author;
     }
 
     /**
-     * Mengatur nama penulis buku.
+     * Mengatur penulis buku.
      *
-     * @param author Nama penulis yang baru
+     * @param author Penulis buku yang baru
      */
     public void setAuthor(String author) {
         this.author = author;
@@ -130,13 +132,18 @@ public class Book {
     }
 
     /**
-     * Mengubah objek buku menjadi representasi String.
+     * Representasi string dari objek buku.
      *
-     * @return Representasi String dari buku
+     * @return String yang berisi informasi buku
      */
     @Override
     public String toString() {
-        return "Buku [ID=" + id + ", Judul=" + title + ", Penulis=" + author +
-                ", Kategori=" + category + ", Tersedia=" + (isAvailable ? "Ya" : "Tidak") + "]";
+        return "Book{" +
+                "id='" + id + '\'' +
+                ", title='" + title + '\'' +
+                ", author='" + author + '\'' +
+                ", category='" + category + '\'' +
+                ", isAvailable=" + isAvailable +
+                '}';
     }
 }
