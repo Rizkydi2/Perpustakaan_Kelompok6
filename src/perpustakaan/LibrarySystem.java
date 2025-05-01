@@ -11,7 +11,6 @@ import java.util.Scanner;
  * Kelas ini mengimplementasikan antarmuka pengguna berbasis CLI (Command Line Interface)
  * untuk berinteraksi dengan sistem manajemen perpustakaan.
  *
- * @author Developer Sistem Perpustakaan
  * @version 1.0
  */
 public class LibrarySystem {
