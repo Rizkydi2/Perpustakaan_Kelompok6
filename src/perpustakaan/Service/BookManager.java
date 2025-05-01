@@ -45,9 +45,9 @@ public class BookManager {
      * @param id ID buku yang dicari
      * @return Objek buku jika ditemukan, null jika tidak ditemukan
      */
-    public Book findBookById(String id) {
+    public Book findBookById(int id) {
         for (Book book : books) {
-            if (book.getId().equals(id)) {
+            if (book.getId() == id) {
                 return book;
             }
         }
@@ -103,7 +103,7 @@ public class BookManager {
     public boolean updateBook(Book updatedBook) {
         for (int i = 0; i < books.size(); i++) {
             Book book = books.get(i);
-            if (book.getId().equals(updatedBook.getId())) {
+            if (book.getId() == updatedBook.getId()) {
                 books.set(i, updatedBook);
                 return true;
             }
@@ -117,10 +117,10 @@ public class BookManager {
      * @param id ID buku yang akan dihapus
      * @return true jika berhasil dihapus, false jika buku tidak ditemukan
      */
-    public boolean deleteBook(String id) {
+    public boolean deleteBook(int id) {
         for (int i = 0; i < books.size(); i++) {
             Book book = books.get(i);
-            if (book.getId().equals(id)) {
+            if (book.getId() == id) {
                 books.remove(i);
                 return true;
             }

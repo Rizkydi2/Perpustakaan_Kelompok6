@@ -1,46 +1,72 @@
 package perpustakaan;
 
 import perpustakaan.Model.Book;
-import perpustakaan.Service.BookManager;
-import perpustakaan.Service.BookSearchService;
-import java.util.LinkedList;
+import perpustakaan.Model.BorrowRequest;
+import perpustakaan.Model.User;
+import perpustakaan.Service.BookService;
+import perpustakaan.Service.BorrowingService;
+import perpustakaan.Service.ReturnHistoryService;
+import perpustakaan.Service.UserService;
+import perpustakaan.datastructure.ReturnHistoryStack;
+
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
 /**
- * Kelas LibrarySystem - kelas utama yang menjalankan aplikasi sistem perpustakaan.
+ * Kelas LibrarySystem - sistem utama aplikasi perpustakaan digital.
  *
- * Kelas ini menyediakan antarmuka pengguna berbasis CLI (Command Line Interface)
- * untuk berinteraksi dengan sistem perpustakaan digital.
- *
- * @author Developer Sistem Perpustakaan
+ * Kelas ini mengintegrasikan semua layanan dan antar muka pengguna
+ * untuk manajemen perpustakaan digital.
  */
 public class LibrarySystem {
-    private static BookManager bookManager;
-    private static BookSearchService searchService;
-    private static Scanner scanner;
+    private BookService bookService;
+    private BorrowingService borrowingService;
+    private UserService userService;
+    private ReturnHistoryService returnHistoryService;
+    private Scanner scanner;
 
     /**
-     * Metode utama untuk menjalankan aplikasi sistem perpustakaan.
-     *
-     * @param args Argumen baris perintah (tidak digunakan)
+     * Konstruktor untuk LibrarySystem.
      */
-    public static void main(String[] args) {
-        // Inisialisasi komponen sistem
-        bookManager = new BookManager();
-        searchService = new BookSearchService();
+    public LibrarySystem() {
+        bookService = new BookService();
+        ReturnHistoryStack returnHistoryStack = new ReturnHistoryStack();
+        returnHistoryService = new ReturnHistoryService(returnHistoryStack);
+        userService = new UserService();
+        borrowingService = new BorrowingService(bookService, userService, returnHistoryService);
         scanner = new Scanner(System.in);
 
-        // Tambahkan beberapa buku contoh
-        initSampleBooks();
+        // Data awal untuk testing
+        initializeTestData();
+    }
 
+    /**
+     * Menambahkan data awal untuk testing.
+     */
+    private void initializeTestData() {
+        // Menambahkan beberapa buku
+        bookService.addBook("Java Programming", "Programming");
+        bookService.addBook("Data Structures", "Computer Science");
+        bookService.addBook("Database Systems", "Computer Science");
+        bookService.addBook("Web Development", "Programming");
+        bookService.addBook("Algorithms", "Computer Science");
+
+        // Menambahkan beberapa pengguna
+        userService.registerUser("Budi Santoso", "budi@example.com");
+        userService.registerUser("Ani Wijaya", "ani@example.com");
+        userService.registerUser("Deni Permana", "deni@example.com");
+    }
+
+    /**
+     * Memulai aplikasi perpustakaan.
+     */
+    public void start() {
         boolean running = true;
-
-        System.out.println("=== SISTEM MANAJEMEN PERPUSTAKAAN DIGITAL ===");
 
         while (running) {
             displayMainMenu();
-            int choice = getUserChoice();
+            int choice = getIntInput("Pilih menu: ");
 
             switch (choice) {
                 case 1:
@@ -49,9 +75,24 @@ public class LibrarySystem {
                 case 2:
                     searchBooks();
                     break;
-                case 0:
+                case 3:
+                    borrowBook();
+                    break;
+                case 4:
+                    viewBorrowQueue();
+                    break;
+                case 5:
+                    returnBook();
+                    break;
+                case 6:
+                    manageUsers();
+                    break;
+                case 7:
+                    displayReturnHistory();
+                    break;
+                case 8:
+                    System.out.println("Terima kasih telah menggunakan sistem perpustakaan digital!");
                     running = false;
-                    System.out.println("Terima kasih telah menggunakan Sistem Perpustakaan Digital.");
                     break;
                 default:
                     System.out.println("Pilihan tidak valid. Silakan coba lagi.");
@@ -62,78 +103,53 @@ public class LibrarySystem {
     }
 
     /**
-     * Menampilkan menu utama sistem.
+     * Menampilkan menu utama.
      */
-    private static void displayMainMenu() {
-        System.out.println("\n=== MENU UTAMA ===");
+    private void displayMainMenu() {
+        System.out.println("\n===== SISTEM PERPUSTAKAAN DIGITAL =====");
         System.out.println("1. Manajemen Buku");
-        System.out.println("2. Pencarian Buku");
-        System.out.println("0. Keluar");
-        System.out.print("Pilih menu: ");
+        System.out.println("2. Cari Buku");
+        System.out.println("3. Pinjam Buku");
+        System.out.println("4. Lihat Antrian Peminjaman");
+        System.out.println("5. Kembalikan Buku");
+        System.out.println("6. Manajemen Pengguna");
+        System.out.println("7. Lihat Riwayat Pengembalian Terbaru");
+        System.out.println("8. Keluar");
+        System.out.println("======================================");
     }
 
     /**
-     * Menampilkan submenu manajemen buku.
+     * Menampilkan menu manajemen buku.
      */
-    private static void displayBookManagementMenu() {
-        System.out.println("\n=== MANAJEMEN BUKU ===");
-        System.out.println("1. Tambah Buku Baru");
-        System.out.println("2. Tampilkan Semua Buku");
-        System.out.println("3. Perbarui Informasi Buku");
-        System.out.println("4. Hapus Buku");
-        System.out.println("0. Kembali ke Menu Utama");
-        System.out.print("Pilih menu: ");
-    }
+    private void manageBooks() {
+        boolean back = false;
 
-    /**
-     * Menampilkan submenu pencarian buku.
-     */
-    private static void displayBookSearchMenu() {
-        System.out.println("\n=== PENCARIAN BUKU ===");
-        System.out.println("1. Cari Berdasarkan Judul");
-        System.out.println("2. Cari Berdasarkan Kategori");
-        System.out.println("0. Kembali ke Menu Utama");
-        System.out.print("Pilih menu: ");
-    }
+        while (!back) {
+            System.out.println("\n===== MANAJEMEN BUKU =====");
+            System.out.println("1. Tambah Buku");
+            System.out.println("2. Edit Buku");
+            System.out.println("3. Hapus Buku");
+            System.out.println("4. Lihat Semua Buku");
+            System.out.println("5. Kembali");
+            System.out.println("=========================");
 
-    /**
-     * Mendapatkan pilihan pengguna dari input.
-     *
-     * @return Pilihan pengguna sebagai integer
-     */
-    private static int getUserChoice() {
-        try {
-            return Integer.parseInt(scanner.nextLine());
-        } catch (NumberFormatException e) {
-            return -1; // Nilai tidak valid
-        }
-    }
-
-    /**
-     * Menangani operasi manajemen buku.
-     */
-    private static void manageBooks() {
-        boolean managingBooks = true;
-
-        while (managingBooks) {
-            displayBookManagementMenu();
-            int choice = getUserChoice();
+            int choice = getIntInput("Pilih menu: ");
 
             switch (choice) {
                 case 1:
-                    addNewBook();
+                    addBook();
                     break;
                 case 2:
-                    displayAllBooks();
+                    editBook();
                     break;
                 case 3:
-                    updateBook();
-                    break;
-                case 4:
                     deleteBook();
                     break;
-                case 0:
-                    managingBooks = false;
+                case 4:
+                    displayAllBooks();
+                    break;
+                case 5:
+                    back = true;
                     break;
                 default:
                     System.out.println("Pilihan tidak valid. Silakan coba lagi.");
@@ -142,24 +158,45 @@ public class LibrarySystem {
     }
 
     /**
-     * Menangani operasi pencarian buku.
+     * Mengelola menu manajemen pengguna.
      */
-    private static void searchBooks() {
-        boolean searchingBooks = true;
+    private void manageUsers() {
+        boolean back = false;
 
-        while (searchingBooks) {
-            displayBookSearchMenu();
-            int choice = getUserChoice();
+        while (!back) {
+            System.out.println("\n===== MANAJEMEN PENGGUNA =====");
+            System.out.println("1. Daftar Pengguna Baru");
+            System.out.println("2. Edit Data Pengguna");
+            System.out.println("3. Hapus Pengguna");
+            System.out.println("4. Lihat Semua Pengguna");
+            System.out.println("5. Lihat Detail Pengguna");
+            System.out.println("6. Lihat Buku yang Dipinjam Pengguna");
+            System.out.println("7. Kembali");
+            System.out.println("=============================");
+
+            int choice = getIntInput("Pilih menu: ");
 
             switch (choice) {
                 case 1:
-                    searchBooksByTitle();
+                    registerUser();
                     break;
                 case 2:
-                    searchBooksByCategory();
+                    editUser();
                     break;
-                case 0:
-                    searchingBooks = false;
+                case 3:
+                    deleteUser();
+                    break;
+                case 4:
+                    displayAllUsers();
+                    break;
+                case 5:
+                    displayUserDetails();
+                    break;
+                case 6:
+                    displayUserBorrowedBooks();
+                    break;
+                case 7:
+                    back = true;
                     break;
                 default:
                     System.out.println("Pilihan tidak valid. Silakan coba lagi.");
@@ -168,205 +205,415 @@ public class LibrarySystem {
     }
 
     /**
-     * Menambahkan buku baru ke dalam sistem.
+     * Mendaftarkan pengguna baru.
      */
-    private static void addNewBook() {
-        System.out.println("\n=== TAMBAH BUKU BARU ===");
+    private void registerUser() {
+        System.out.println("\n===== DAFTAR PENGGUNA BARU =====");
+        System.out.print("Masukkan nama pengguna: ");
+        String name = scanner.nextLine();
 
-        System.out.print("Judul Buku: ");
-        String title = scanner.nextLine();
+        System.out.print("Masukkan email pengguna: ");
+        String email = scanner.nextLine();
 
-        System.out.print("Penulis: ");
-        String author = scanner.nextLine();
-
-        System.out.print("Kategori: ");
-        String category = scanner.nextLine();
-
-        Book newBook = new Book(title, author, category);
-        bookManager.addBook(newBook);
-        searchService.addBookToSearchTrees(newBook);
-
-        System.out.println("Buku berhasil ditambahkan dengan ID: " + newBook.getId());
+        User newUser = userService.registerUser(name, email);
+        System.out.println("Pengguna berhasil didaftarkan dengan ID: " + newUser.getId());
     }
 
     /**
-     * Menampilkan semua buku dalam koleksi.
+     * Mengedit data pengguna.
      */
-    private static void displayAllBooks() {
-        System.out.println("\n=== DAFTAR SEMUA BUKU ===");
+    private void editUser() {
+        System.out.println("\n===== EDIT DATA PENGGUNA =====");
+        int userId = getIntInput("Masukkan ID pengguna: ");
 
-        LinkedList<Book> books = bookManager.getAllBooks();
-
-        if (books.isEmpty()) {
-            System.out.println("Tidak ada buku dalam koleksi.");
+        User user = userService.getUserById(userId);
+        if (user == null) {
+            System.out.println("Pengguna dengan ID " + userId + " tidak ditemukan.");
             return;
         }
 
-        for (Book book : books) {
-            displayBookDetails(book);
-        }
-    }
+        System.out.println("Data pengguna saat ini:");
+        System.out.println(user);
 
-    /**
-     * Memperbarui informasi buku yang sudah ada.
-     */
-    private static void updateBook() {
-        System.out.println("\n=== PERBARUI INFORMASI BUKU ===");
+        System.out.print("Masukkan nama baru (biarkan kosong jika tidak diubah): ");
+        String name = scanner.nextLine();
+        name = name.isEmpty() ? null : name;
 
-        System.out.print("Masukkan ID buku yang akan diperbarui: ");
-        String id = scanner.nextLine();
+        System.out.print("Masukkan email baru (biarkan kosong jika tidak diubah): ");
+        String email = scanner.nextLine();
+        email = email.isEmpty() ? null : email;
 
-        Book book = bookManager.findBookById(id);
-
-        if (book == null) {
-            System.out.println("Buku dengan ID tersebut tidak ditemukan.");
-            return;
-        }
-
-        System.out.println("Buku yang akan diperbarui:");
-        displayBookDetails(book);
-
-        System.out.println("\nMasukkan informasi baru (kosongkan jika tidak ingin mengubah):");
-
-        System.out.print("Judul Buku [" + book.getTitle() + "]: ");
-        String title = scanner.nextLine();
-
-        System.out.print("Penulis [" + book.getAuthor() + "]: ");
-        String author = scanner.nextLine();
-
-        System.out.print("Kategori [" + book.getCategory() + "]: ");
-        String category = scanner.nextLine();
-
-        // Perbarui hanya jika input tidak kosong
-        if (!title.isEmpty()) {
-            book.setTitle(title);
-        }
-
-        if (!author.isEmpty()) {
-            book.setAuthor(author);
-        }
-
-        if (!category.isEmpty()) {
-            book.setCategory(category);
-        }
-
-        bookManager.updateBook(book);
-        searchService.updateSearchTrees(bookManager.getAllBooks());
-
-        System.out.println("Informasi buku berhasil diperbarui.");
-    }
-
-    /**
-     * Menghapus buku dari koleksi.
-     */
-    private static void deleteBook() {
-        System.out.println("\n=== HAPUS BUKU ===");
-
-        System.out.print("Masukkan ID buku yang akan dihapus: ");
-        String id = scanner.nextLine();
-
-        Book book = bookManager.findBookById(id);
-
-        if (book == null) {
-            System.out.println("Buku dengan ID tersebut tidak ditemukan.");
-            return;
-        }
-
-        System.out.println("Buku yang akan dihapus:");
-        displayBookDetails(book);
-
-        System.out.print("Apakah Anda yakin ingin menghapus buku ini? (y/n): ");
-        String confirmation = scanner.nextLine();
-
-        if (confirmation.equalsIgnoreCase("y")) {
-            bookManager.deleteBook(id);
-            searchService.updateSearchTrees(bookManager.getAllBooks());
-            System.out.println("Buku berhasil dihapus dari koleksi.");
+        boolean success = userService.updateUser(userId, name, email);
+        if (success) {
+            System.out.println("Data pengguna berhasil diperbarui.");
         } else {
-            System.out.println("Penghapusan buku dibatalkan.");
+            System.out.println("Gagal memperbarui data pengguna.");
         }
     }
 
     /**
-     * Mencari buku berdasarkan judul.
+     * Menghapus data pengguna.
      */
-    private static void searchBooksByTitle() {
-        System.out.println("\n=== CARI BUKU BERDASARKAN JUDUL ===");
+    private void deleteUser() {
+        System.out.println("\n===== HAPUS PENGGUNA =====");
+        int userId = getIntInput("Masukkan ID pengguna: ");
 
-        System.out.print("Masukkan judul buku (atau bagian dari judul): ");
-        String title = scanner.nextLine();
+        User user = userService.getUserById(userId);
+        if (user == null) {
+            System.out.println("Pengguna dengan ID " + userId + " tidak ditemukan.");
+            return;
+        }
 
-        List<Book> foundBooks = searchService.searchByTitle(title);
+        if (!user.getBorrowedBooks().isEmpty()) {
+            System.out.println("Pengguna masih memiliki buku yang dipinjam. Tidak dapat dihapus.");
+            return;
+        }
 
-        displaySearchResults(foundBooks, "judul");
+        boolean success = userService.removeUser(userId);
+        if (success) {
+            System.out.println("Pengguna berhasil dihapus.");
+        } else {
+            System.out.println("Gagal menghapus pengguna.");
+        }
     }
 
     /**
-     * Mencari buku berdasarkan kategori.
+     * Menampilkan semua pengguna.
      */
-    private static void searchBooksByCategory() {
-        System.out.println("\n=== CARI BUKU BERDASARKAN KATEGORI ===");
+    private void displayAllUsers() {
+        System.out.println("\n===== DAFTAR SEMUA PENGGUNA =====");
+        List<User> users = userService.getAllUsers();
+
+        if (users.isEmpty()) {
+            System.out.println("Tidak ada pengguna terdaftar.");
+            return;
+        }
+
+        for (User user : users) {
+            System.out.println(user);
+        }
+    }
+
+    /**
+     * Menampilkan detail pengguna.
+     */
+    private void displayUserDetails() {
+        System.out.println("\n===== DETAIL PENGGUNA =====");
+        int userId = getIntInput("Masukkan ID pengguna: ");
+
+        User user = userService.getUserById(userId);
+        if (user == null) {
+            System.out.println("Pengguna dengan ID " + userId + " tidak ditemukan.");
+            return;
+        }
+
+        System.out.println("ID: " + user.getId());
+        System.out.println("Nama: " + user.getName());
+        System.out.println("Email: " + user.getEmail());
+        System.out.println("Jumlah buku yang dipinjam: " + user.getBorrowedBooksCount());
+    }
+
+    /**
+     * Menampilkan buku yang dipinjam oleh pengguna.
+     */
+    private void displayUserBorrowedBooks() {
+        System.out.println("\n===== BUKU YANG DIPINJAM =====");
+        int userId = getIntInput("Masukkan ID pengguna: ");
+
+        User user = userService.getUserById(userId);
+        if (user == null) {
+            System.out.println("Pengguna dengan ID " + userId + " tidak ditemukan.");
+            return;
+        }
+
+        List<BorrowRequest> borrowedBooks = userService.getUserBorrowedBooks(userId);
+
+        if (borrowedBooks.isEmpty()) {
+            System.out.println("Pengguna tidak meminjam buku saat ini.");
+            return;
+        }
+
+        System.out.println("Buku yang dipinjam oleh " + user.getName() + ":");
+        for (BorrowRequest request : borrowedBooks) {
+            System.out.println("- " + request.getBook().getTitle() +
+                    " (Dipinjam pada: " + request.getBorrowTime() + ")");
+        }
+    }
+
+    /**
+     * Menambahkan buku baru.
+     */
+    private void addBook() {
+        System.out.println("\n===== TAMBAH BUKU =====");
+        System.out.print("Masukkan judul buku: ");
+        String title = scanner.nextLine();
 
         System.out.print("Masukkan kategori buku: ");
         String category = scanner.nextLine();
 
-        List<Book> foundBooks = searchService.searchByCategory(category);
+        Book newBook = bookService.addBook(title, category);
+        System.out.println("Buku berhasil ditambahkan dengan ID: " + newBook.getId());
+    }
 
-        displaySearchResults(foundBooks, "kategori");
+    /**
+     * Mengedit data buku.
+     */
+    private void editBook() {
+        System.out.println("\n===== EDIT BUKU =====");
+        int bookId = getIntInput("Masukkan ID buku: ");
+
+        Book book = bookService.getBookById(bookId);
+        if (book == null) {
+            System.out.println("Buku dengan ID " + bookId + " tidak ditemukan.");
+            return;
+        }
+
+        System.out.println("Data buku saat ini:");
+        System.out.println(book);
+
+        System.out.print("Masukkan judul baru (biarkan kosong jika tidak diubah): ");
+        String title = scanner.nextLine();
+        title = title.isEmpty() ? null : title;
+
+        System.out.print("Masukkan kategori baru (biarkan kosong jika tidak diubah): ");
+        String category = scanner.nextLine();
+        category = category.isEmpty() ? null : category;
+
+        boolean success = bookService.updateBook(bookId, title, category);
+        if (success) {
+            System.out.println("Buku berhasil diperbarui.");
+        } else {
+            System.out.println("Gagal memperbarui buku.");
+        }
+    }
+
+    /**
+     * Menghapus buku.
+     */
+    private void deleteBook() {
+        System.out.println("\n===== HAPUS BUKU =====");
+        int bookId = getIntInput("Masukkan ID buku: ");
+
+        Book book = bookService.getBookById(bookId);
+        if (book == null) {
+            System.out.println("Buku dengan ID " + bookId + " tidak ditemukan.");
+            return;
+        }
+
+        // Periksa apakah buku sedang dipinjam
+        if (borrowingService.isBookBorrowed(bookId)) {
+            System.out.println("Buku sedang dipinjam. Tidak dapat dihapus.");
+            return;
+        }
+
+        boolean success = bookService.removeBook(bookId);
+        if (success) {
+            System.out.println("Buku berhasil dihapus.");
+        } else {
+            System.out.println("Gagal menghapus buku.");
+        }
+    }
+
+    /**
+     * Menampilkan semua buku.
+     */
+    private void displayAllBooks() {
+        System.out.println("\n===== DAFTAR BUKU =====");
+        List<Book> books = bookService.getAllBooks();
+
+        if (books.isEmpty()) {
+            System.out.println("Tidak ada buku tersedia.");
+            return;
+        }
+
+        for (Book book : books) {
+            System.out.println(book);
+        }
+    }
+
+    /**
+     * Mencari buku berdasarkan judul atau kategori.
+     */
+    private void searchBooks() {
+        System.out.println("\n===== CARI BUKU =====");
+        System.out.println("1. Cari berdasarkan judul");
+        System.out.println("2. Cari berdasarkan kategori");
+        System.out.println("3. Kembali");
+
+        int choice = getIntInput("Pilih menu: ");
+
+        switch (choice) {
+            case 1:
+                System.out.print("Masukkan judul buku: ");
+                String title = scanner.nextLine();
+                List<Book> booksByTitle = bookService.searchBooksByTitle(title);
+                displaySearchResults(booksByTitle);
+                break;
+            case 2:
+                System.out.print("Masukkan kategori buku: ");
+                String category = scanner.nextLine();
+                List<Book> booksByCategory = bookService.searchBooksByCategory(category);
+                displaySearchResults(booksByCategory);
+                break;
+            case 3:
+                return;
+            default:
+                System.out.println("Pilihan tidak valid. Silakan coba lagi.");
+        }
     }
 
     /**
      * Menampilkan hasil pencarian buku.
-     *
-     * @param books Daftar buku hasil pencarian
-     * @param searchType Jenis pencarian (judul atau kategori)
      */
-    private static void displaySearchResults(List<Book> books, String searchType) {
+    private void displaySearchResults(List<Book> books) {
         if (books.isEmpty()) {
-            System.out.println("Tidak ada buku yang cocok dengan " + searchType + " tersebut.");
+            System.out.println("Tidak ada buku yang ditemukan.");
             return;
         }
 
-        System.out.println("\nDitemukan " + books.size() + " buku:");
-
+        System.out.println("\nHasil pencarian:");
         for (Book book : books) {
-            displayBookDetails(book);
+            System.out.println(book);
         }
     }
 
     /**
-     * Menampilkan detail buku.
-     *
-     * @param book Buku yang detailnya akan ditampilkan
+     * Meminjam buku.
      */
-    private static void displayBookDetails(Book book) {
-        System.out.println("\nID: " + book.getId());
-        System.out.println("Judul: " + book.getTitle());
-        System.out.println("Penulis: " + book.getAuthor());
-        System.out.println("Kategori: " + book.getCategory());
-        System.out.println("Status: " + (book.isAvailable() ? "Tersedia" : "Dipinjam"));
-        System.out.println("--------------------------");
+    private void borrowBook() {
+        System.out.println("\n===== PINJAM BUKU =====");
+        int userId = getIntInput("Masukkan ID pengguna: ");
+
+        User user = userService.getUserById(userId);
+        if (user == null) {
+            System.out.println("Pengguna dengan ID " + userId + " tidak ditemukan.");
+            return;
+        }
+
+        int bookId = getIntInput("Masukkan ID buku: ");
+
+        Book book = bookService.getBookById(bookId);
+        if (book == null) {
+            System.out.println("Buku dengan ID " + bookId + " tidak ditemukan.");
+            return;
+        }
+
+        if (user.isBookBorrowed(bookId)) {
+            System.out.println("Pengguna sudah meminjam buku ini.");
+            return;
+        }
+
+        BorrowRequest request = borrowingService.borrowBook(userId, bookId);
+        if (request != null) {
+            System.out.println("Buku berhasil dipinjam.");
+        } else {
+            System.out.println("Buku sedang dipinjam oleh pengguna lain. Permintaan masuk ke antrian.");
+        }
     }
 
     /**
-     * Menginisialisasi beberapa buku contoh untuk demonstrasi.
+     * Melihat antrian peminjaman.
      */
-    private static void initSampleBooks() {
-        // Buat beberapa buku contoh
-        Book book1 = new Book("Pemrograman Java untuk Pemula", "Budi Santoso", "Teknologi");
-        Book book2 = new Book("Struktur Data dan Algoritma", "Dewi Wijaya", "Teknologi");
-        Book book3 = new Book("Database Management Systems", "Rini Putri", "Teknologi");
-        Book book4 = new Book("Manajemen Proyek IT", "Agus Pratama", "Bisnis");
-        Book book5 = new Book("Machine Learning dengan Python", "Hendra Gunawan", "Teknologi");
+    private void viewBorrowQueue() {
+        System.out.println("\n===== ANTRIAN PEMINJAMAN =====");
+        List<BorrowRequest> queue = borrowingService.getBorrowQueue();
 
-        // Tambahkan buku ke sistem
-        bookManager.addBook(book1);
-        bookManager.addBook(book2);
-        bookManager.addBook(book3);
-        bookManager.addBook(book4);
-        bookManager.addBook(book5);
+        if (queue.isEmpty()) {
+            System.out.println("Tidak ada antrian peminjaman.");
+            return;
+        }
 
-        // Perbarui pohon pencarian
-        searchService.updateSearchTrees(bookManager.getAllBooks());
+        System.out.println("Antrian peminjaman:");
+        for (int i = 0; i < queue.size(); i++) {
+            BorrowRequest request = queue.get(i);
+            System.out.println((i + 1) + ". " + request.getUser().getName() +
+                    " - " + request.getBook().getTitle() +
+                    " (Waktu permintaan: " + request.getBorrowTime() + ")");
+        }
+    }
+
+    /**
+     * Mengembalikan buku.
+     */
+    private void returnBook() {
+        System.out.println("\n===== KEMBALIKAN BUKU =====");
+        int userId = getIntInput("Masukkan ID pengguna: ");
+
+        User user = userService.getUserById(userId);
+        if (user == null) {
+            System.out.println("Pengguna dengan ID " + userId + " tidak ditemukan.");
+            return;
+        }
+
+        List<BorrowRequest> borrowedBooks = userService.getUserBorrowedBooks(userId);
+        if (borrowedBooks.isEmpty()) {
+            System.out.println("Pengguna tidak meminjam buku saat ini.");
+            return;
+        }
+
+        System.out.println("Buku yang dipinjam:");
+        for (BorrowRequest request : borrowedBooks) {
+            System.out.println(request.getBook().getId() + ". " +
+                    request.getBook().getTitle() +
+                    " (Dipinjam pada: " + request.getBorrowTime() + ")");
+        }
+
+        int bookId = getIntInput("Masukkan ID buku yang akan dikembalikan: ");
+
+        boolean success = borrowingService.returnBook(userId, bookId);
+        if (success) {
+            System.out.println("Buku berhasil dikembalikan.");
+        } else {
+            System.out.println("Gagal mengembalikan buku. Pastikan buku sedang dipinjam oleh pengguna.");
+        }
+    }
+
+    /**
+     * Menampilkan riwayat pengembalian terbaru.
+     */
+    private void displayReturnHistory() {
+        System.out.println("\n===== RIWAYAT PENGEMBALIAN TERBARU =====");
+        List<BorrowRequest> recentReturns = returnHistoryService.getRecentReturns(5);
+
+        if (recentReturns.isEmpty()) {
+            System.out.println("Tidak ada riwayat pengembalian.");
+            return;
+        }
+
+        System.out.println("5 pengembalian terbaru:");
+        for (int i = 0; i < recentReturns.size(); i++) {
+            BorrowRequest request = recentReturns.get(i);
+            System.out.println((i + 1) + ". " + request.getUser().getName() +
+                    " - " + request.getBook().getTitle() +
+                    " (Waktu pengembalian: " + request.getReturnTime() + ")");
+        }
+    }
+
+    /**
+     * Mendapatkan input integer dari pengguna.
+     *
+     * @param prompt Pesan yang ditampilkan
+     * @return Integer yang dimasukkan pengguna
+     */
+    private int getIntInput(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                String input = scanner.nextLine();
+                return Integer.parseInt(input);
+            } catch (NumberFormatException e) {
+                System.out.println("Input tidak valid. Masukkan angka.");
+            }
+        }
+    }
+
+    /**
+     * Main method untuk menjalankan aplikasi.
+     *
+     * @param args Command line arguments
+     */
+    public static void main(String[] args) {
+        LibrarySystem system = new LibrarySystem();
+        system.start();
     }
 }
